@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>PT Systems</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f5f7fa;
+      margin: 0;
+      padding: 0;
+    }
+
+    header {
+      background-color: #003366;
+      color: white;
+      padding: 20px;
+      text-align: center;
+      font-size: 24px;
+    }	
+
+    .container {
+      max-width: 800px;
+      margin: 40px auto;
+      background-color: white;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    label {
+      font-weight: bold;
+      display: block;
+      margin-bottom: 8px;
+    }
+
+    select, textarea, input[type="text"] {
+      width: 100%;
+      padding: 10px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+    }
+
+    .checkbox-group-horizontal {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+
+    .checkbox-group-horizontal label {
+      font-weight: normal;
+      display: flex;
+      align-items: center;
+    }
+
+    .submit-btn {
+      background-color: #003366;
+      color: white;
+      padding: 12px 25px;
+      border: none;
+      border-radius: 5px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    .submit-btn:hover {
+      background-color: #00509e;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    PT Systems
+  </header>
+
+  <div class="container">
+    <form>
+      <!-- Roles -->
+      <div class="form-group">
+        <label for="roles">Roles</label>
+        <select id="roles">
+          <option value="">Select a role</option>
+          <option value="Role1">Role 1</option>
+          <option value="Role2">Role 2</option>
+          <option value="Role3">Role 3</option>
+          <option value="Role4">Role 4</option>
+        </select>
+      </div>
+	  
+	  <!-- Tooltip for Roles -->
+	<div style="margin-top: -10px; margin-bottom: 10px; font-size: 14px; color: #666;">
+	  <em>Add tooltip here to Choose the role that best matches the user's responsibilities in the system.</em>
+	</div>
+
+      <!-- Legal Entity -->
+      <div class="form-group">
+        <label for="legalEntity">Legal Entity</label>
+        <select id="legalEntity" onchange="populateDesks()">
+          <option value="">Select Legal Entity</option>
+          <option value="EntityA">Entity A</option>
+          <option value="EntityB">Entity B</option>
+        </select>
+      </div>
+
+      <!-- Desk -->
+      <div class="form-group">
+        <label for="desk">Desk</label>
+        <select id="desk">
+          <option value="">Select Desk</option>
+        </select>
+      </div>
+
+      <!-- User Type -->
+      <div class="form-group">
+        <label for="userType">User Type</label>
+        <select id="userType">
+          <option value="">Select User Type</option>
+          <option value="Internal">Internal</option>
+          <option value="External">External</option>
+        </select>
+      </div>
+
+      <!-- Application Level (Horizontal checkboxes) -->
+      <div class="form-group">
+        <label>Application Level</label>
+        <div class="checkbox-group-horizontal">
+          <label><input type="checkbox" name="applicationLevel" value="App1"> App 1</label>
+          <label><input type="checkbox" name="applicationLevel" value="App2"> App 2</label>
+          <label><input type="checkbox" name="applicationLevel" value="App3"> App 3</label>
+          <label><input type="checkbox" name="applicationLevel" value="App4"> App 4</label>
+        </div>
+      </div>
+
+      <!-- BOOK/GMI Accounts -->
+      <div class="form-group">
+        <label for="accounts">BOOK/GMI Accounts</label>
+        <textarea id="accounts" rows="3" placeholder="Enter account details here..."></textarea>
+      </div>
+
+      <!-- Location -->
+      <div class="form-group">
+        <label for="location">Location</label>
+        <select id="location">
+          <option value="">Select Location</option>
+          <option value="NY">NY</option>
+          <option value="LN">LN</option>
+          <option value="TK">TK</option>
+        </select>
+      </div>
+
+      <!-- Comments -->
+      <div class="form-group">
+        <label for="comments">Comments</label>
+        <textarea id="comments" rows="4" placeholder="Type your comments here..."></textarea>
+      </div>
+
+      <!-- Submit -->
+      <div class="form-group">
+        <button type="submit" class="submit-btn">Submit</button>
+      </div>
+    </form>
+  </div>
+
+  <script>
+    function populateDesks() {
+      const legalEntity = document.getElementById('legalEntity').value;
+      const deskSelect = document.getElementById('desk');
+      deskSelect.innerHTML = '<option value="">Select Desk</option>';
+
+      const desks = {
+        EntityA: ['Desk A1', 'Desk A2'],
+        EntityB: ['Desk B1', 'Desk B2']
+      };
+
+      if (desks[legalEntity]) {
+        desks[legalEntity].forEach(desk => {
+          const option = document.createElement('option');
+          option.value = desk;
+          option.text = desk;
+          deskSelect.appendChild(option);
+        });
+      }
+    }
+  </script>
+
+</body>
+</html>
