@@ -1,0 +1,114 @@
+Great question — migrating from **GigaSpaces 8.x to 16.x** involves several changes, especially if you're starting the **Lookup Service (LUS)** using the internal `com.gigaspaces.start.SystemBoot` class with custom VM parameters. This approach was common earlier but is now **deprecated** and replaced with more **modular**, **Kubernetes-friendly**, or **standalone bootstrapping techniques**.
+
+Let’s go through the **step-by-step migration strategy** from `SystemBoot` in 8.x to the appropriate method in 16.x:
+
+---
+
+## ✅ Background
+
+In GigaSpaces 8.x, you may have started LUS like this:
+```java
+SystemBoot.main(new String[]{"lus"});
+```
+
+Or with additional system properties:
+```bash
+-Dcom.gs.jini_lus.enabled=true
+-Dcom.gs.transport_protocol.lrmi.bind-port=4174
+-Dcom.gs.multicast.enabled=false
+...
+```
+
+But in **GigaSpaces 16.x**, the recommended way is to use the **CLI tools**, **YAML configuration**, or **Docker/Kubernetes**—**not** internal APIs like `SystemBoot`.
+
+---
+
+## ✅ Migration Options
+
+### 🔹 Option 1: Use the Built-In CLI (`gs.sh` / `gs.bat`)
+
+GigaSpaces 16.x provides launch scripts:
+
+```bash
+$GS_HOME/bin/gs.sh lus
+```
+
+This starts a **Lookup Service (LUS)** node. You can pass environment variables or define them in a configuration file.
+
+To emulate your old `SystemBoot` setup:
+```bash
+export GS_LOOKUP_LOCATORS=localhost
+export GS_MULTICAST_ENABLED=false
+export GS_LRMI_BIND_PORT=4174
+$GS_HOME/bin/gs.sh lus
+```
+
+---
+
+### 🔹 Option 2: Start LUS Programmatically (Recommended Alternative)
+
+If you really need to start LUS from Java code (e.g., for embedded test environments), use the **ServiceGrid API** instead of `SystemBoot`.
+
+However, GigaSpaces does **not recommend** programmatically starting infrastructure services in production anymore. Instead, deploy LUS as part of your runtime environment (see Option 3).
+
+---
+
+### 🔹 Option 3: Use Docker / Kubernetes (Modern Approach)
+
+GigaSpaces 16.x is geared toward **containerized environments**. You can deploy LUS using Docker:
+
+```bash
+docker run -d \
+  -e GS_LOOKUP_LOCATORS=localhost \
+  -e GS_LRMI_BIND_PORT=4174 \
+  -e GS_MULTICAST_ENABLED=false \
+  -p 4174:4174 \
+  gigaspaces/xap-lus:<version>
+```
+
+Or via **Helm charts** in Kubernetes if you're cloud-native.
+
+---
+
+### 🔹 Option 4: Use `setenv-overrides.sh` for Local Customization
+
+Instead of passing system properties programmatically, you can edit:
+
+```bash
+$GS_HOME/bin/setenv-overrides.sh
+```
+
+Example:
+```bash
+export EXT_JAVA_OPTIONS="$EXT_JAVA_OPTIONS -Dcom.gs.jini_lus.enabled=true"
+export EXT_JAVA_OPTIONS="$EXT_JAVA_OPTIONS -Dcom.gs.multicast.enabled=false"
+```
+
+Then just start LUS with:
+
+```bash
+$GS_HOME/bin/gs.sh lus
+```
+
+---
+
+## ❗ What NOT to Do in GigaSpaces 16.x
+
+- ❌ Do not use `SystemBoot` (it’s deprecated and internal)
+- ❌ Do not manually include LUS jars and bootstrap them in production
+- ❌ Avoid Jini-based or multicast-only discovery unless strictly required
+
+---
+
+## 🔄 Summary of Migration Mapping
+
+| GigaSpaces 8.x (Old)                         | GigaSpaces 16.x (New)                          |
+|----------------------------------------------|------------------------------------------------|
+| `SystemBoot.main(new String[]{"lus"})`       | `$GS_HOME/bin/gs.sh lus`                       |
+| `-Dcom.gs.jini_lus.enabled=true`             | `GS_LOOKUP_LOCATORS=localhost`                |
+| Manual VM params via Java code               | Environment variables or `setenv-overrides.sh` |
+| Internal Jini APIs                           | REST, LRMI, Kubernetes, or Docker setup        |
+
+---
+
+If you'd like, share the exact parameters you used with `SystemBoot`, and I can give you a one-to-one replacement using the recommended approach for 16.x.
