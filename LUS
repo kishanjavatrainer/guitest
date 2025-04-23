@@ -1,114 +1,40 @@
-Great question — migrating from **GigaSpaces 8.x to 16.x** involves several changes, especially if you're starting the **Lookup Service (LUS)** using the internal `com.gigaspaces.start.SystemBoot` class with custom VM parameters. This approach was common earlier but is now **deprecated** and replaced with more **modular**, **Kubernetes-friendly**, or **standalone bootstrapping techniques**.
-
-Let’s go through the **step-by-step migration strategy** from `SystemBoot` in 8.x to the appropriate method in 16.x:
-
----
-
-## ✅ Background
-
-In GigaSpaces 8.x, you may have started LUS like this:
-```java
-SystemBoot.main(new String[]{"lus"});
-```
-
-Or with additional system properties:
-```bash
--Dcom.gs.jini_lus.enabled=true
--Dcom.gs.transport_protocol.lrmi.bind-port=4174
--Dcom.gs.multicast.enabled=false
-...
-```
-
-But in **GigaSpaces 16.x**, the recommended way is to use the **CLI tools**, **YAML configuration**, or **Docker/Kubernetes**—**not** internal APIs like `SystemBoot`.
-
----
-
-## ✅ Migration Options
-
-### 🔹 Option 1: Use the Built-In CLI (`gs.sh` / `gs.bat`)
-
-GigaSpaces 16.x provides launch scripts:
-
-```bash
-$GS_HOME/bin/gs.sh lus
-```
-
-This starts a **Lookup Service (LUS)** node. You can pass environment variables or define them in a configuration file.
-
-To emulate your old `SystemBoot` setup:
-```bash
-export GS_LOOKUP_LOCATORS=localhost
-export GS_MULTICAST_ENABLED=false
-export GS_LRMI_BIND_PORT=4174
-$GS_HOME/bin/gs.sh lus
-```
-
----
-
-### 🔹 Option 2: Start LUS Programmatically (Recommended Alternative)
-
-If you really need to start LUS from Java code (e.g., for embedded test environments), use the **ServiceGrid API** instead of `SystemBoot`.
-
-However, GigaSpaces does **not recommend** programmatically starting infrastructure services in production anymore. Instead, deploy LUS as part of your runtime environment (see Option 3).
-
----
-
-### 🔹 Option 3: Use Docker / Kubernetes (Modern Approach)
-
-GigaSpaces 16.x is geared toward **containerized environments**. You can deploy LUS using Docker:
-
-```bash
-docker run -d \
-  -e GS_LOOKUP_LOCATORS=localhost \
-  -e GS_LRMI_BIND_PORT=4174 \
-  -e GS_MULTICAST_ENABLED=false \
-  -p 4174:4174 \
-  gigaspaces/xap-lus:<version>
-```
-
-Or via **Helm charts** in Kubernetes if you're cloud-native.
-
----
-
-### 🔹 Option 4: Use `setenv-overrides.sh` for Local Customization
-
-Instead of passing system properties programmatically, you can edit:
-
-```bash
+You're upgrading your GigaSpaces LUS configuration from 8.x (SystemBoot-based XML setup) to GigaSpaces 16.x, which no longer supports internal APIs like SystemBoot. Instead, scripts and environment variables are used to configure and launch services like the Lookup Service (LUS).
+Here’s a modern 16.x equivalent of your configuration in script-based format using environment variables — no need for XML or internal classes:
+________________________________________
+✅ 16.x Equivalent of Your Configuration
+1. Use setenv-overrides.sh to set environment variables
+Edit (or create if missing):
 $GS_HOME/bin/setenv-overrides.sh
-```
+Add the following content:
+#!/bin/bash
 
-Example:
-```bash
-export EXT_JAVA_OPTIONS="$EXT_JAVA_OPTIONS -Dcom.gs.jini_lus.enabled=true"
-export EXT_JAVA_OPTIONS="$EXT_JAVA_OPTIONS -Dcom.gs.multicast.enabled=false"
-```
-
-Then just start LUS with:
-
-```bash
+export EXT_JAVA_OPTIONS="$EXT_JAVA_OPTIONS \
+  -Dsun.rmi.dgc.client.gcInterval=36000000 \
+  -Dsun.rmi.dgc.server.gcInterval=36000000 \
+  -Djava.rmi.server.RMIClassLoaderSpi=default \
+  -Djava.rmi.server.logCalls=false \
+  -Dcom.gs.jini_lus.groups=PS_ARCH_${ENV_TYPE} \
+  -Dcom.gs.jini_lus.locators=${GIGASPACE_LUS_HOST_PORT} \
+  -Dcom.gs.logging.debug=false \
+  -Dcom.gigaspaces.lib=${ARCH_LIB_DIR}/ \
+  -Dcom.gigaspaces.jini.lib=${ARCH_LIB_DIR}/jini/"
+✅ This replaces your <EnvVar key="JVM_ARGS" ...> block.
+________________________________________
+2. Start LUS with CLI (instead of SystemBoot)
+Use the standard GigaSpaces startup script:
 $GS_HOME/bin/gs.sh lus
-```
-
----
-
-## ❗ What NOT to Do in GigaSpaces 16.x
-
-- ❌ Do not use `SystemBoot` (it’s deprecated and internal)
-- ❌ Do not manually include LUS jars and bootstrap them in production
-- ❌ Avoid Jini-based or multicast-only discovery unless strictly required
-
----
-
-## 🔄 Summary of Migration Mapping
-
-| GigaSpaces 8.x (Old)                         | GigaSpaces 16.x (New)                          |
-|----------------------------------------------|------------------------------------------------|
-| `SystemBoot.main(new String[]{"lus"})`       | `$GS_HOME/bin/gs.sh lus`                       |
-| `-Dcom.gs.jini_lus.enabled=true`             | `GS_LOOKUP_LOCATORS=localhost`                |
-| Manual VM params via Java code               | Environment variables or `setenv-overrides.sh` |
-| Internal Jini APIs                           | REST, LRMI, Kubernetes, or Docker setup        |
-
----
-
-If you'd like, share the exact parameters you used with `SystemBoot`, and I can give you a one-to-one replacement using the recommended approach for 16.x.
+✅ This replaces:
+<EnvVar key="PROGRAM_ARGS" value="${MAIN_CLASS} com.gigaspaces.start.services=LH"/>
+In 16.x, you simply pass "lus" as an argument to gs.sh — no need for SystemBoot.
+________________________________________
+ Optional: Custom JARs or Classpath Handling
+If you're using external libs (ARCH_LIB_DIR), make sure they’re in the right folder (e.g., $GS_HOME/lib/platform/ext or added via GS_EXT).
+________________________________________
+✅ Summary Mapping
+GigaSpaces 8.x (XML + SystemBoot)	GigaSpaces 16.x (Script-Based CLI)
+MAIN_CLASS = com.gigaspaces.start.SystemBoot	Use gs.sh lus
+PROGRAM_ARGS = com.gigaspaces.start.services=LH	Replaced by lus argument in gs.sh
+JVM_ARGS for system properties	Use setenv-overrides.sh
+Custom libs in ${ARCH_LIB_DIR}/jini/	Set via GS_EXT or in classpath
+________________________________________
+If you're using a process monitor (like your <ProcessEnvironment> XML implies), integrate this CLI-based gs.sh lus startup inside that system’s launcher instead of relying on internal APIs.
